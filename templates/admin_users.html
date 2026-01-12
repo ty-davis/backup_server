@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin - Manage Users</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        .nav {
+            margin-bottom: 20px;
+        }
+        .nav a {
+            margin-right: 15px;
+            color: #008CBA;
+            text-decoration: none;
+            padding: 8px 16px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+        }
+        .nav a:hover {
+            background-color: #e0e0e0;
+        }
+        .nav a.active {
+            background-color: #008CBA;
+            color: white;
+        }
+        .btn {
+            padding: 8px 16px;
+            text-decoration: none;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn-primary {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #45a049;
+        }
+        .btn-danger {
+            background-color: #f44336;
+            color: white;
+        }
+        .btn-danger:hover {
+            background-color: #da190b;
+        }
+        .btn-edit {
+            background-color: #008CBA;
+            color: white;
+        }
+        .btn-edit:hover {
+            background-color: #007399;
+        }
+        .logout-btn {
+            background-color: #f44336;
+            color: white;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        .form-section {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"],
+        input[type="password"],
+        select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .checkbox-item input[type="checkbox"] {
+            width: auto;
+        }
+        .actions {
+            display: flex;
+            gap: 10px;
+        }
+        .message {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .message.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            margin: 2px;
+            background-color: #e0e0e0;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Admin - Manage Users</h1>
+        <div>
+            <span>Welcome, {{.Username}}!</span>
+            <a href="/logout" class="btn logout-btn">Logout</a>
+        </div>
+    </div>
+
+    <div class="nav">
+        <a href="/files">← Back to Files</a>
+        <a href="/admin/files">Manage Files</a>
+        <a href="/admin/users" class="active">Manage Users</a>
+        <a href="/admin/groups">Manage Groups</a>
+    </div>
+
+    {{if .Message}}
+    <div class="message {{if .Success}}success{{else}}error{{end}}">
+        {{.Message}}
+    </div>
+    {{end}}
+
+    <div class="form-section">
+        <h2>Add New User</h2>
+        <form method="POST" action="/admin/users/add">
+            <div class="form-group">
+                <label>Username:</label>
+                <input type="text" name="username" required>
+            </div>
+            <div class="form-group">
+                <label>Password:</label>
+                <input type="password" name="password" required minlength="4">
+            </div>
+            <div class="form-group">
+                <label>Groups:</label>
+                <div class="checkbox-group">
+                    {{range .Groups}}
+                    <div class="checkbox-item">
+                        <input type="checkbox" name="group_ids" value="{{.ID}}" id="group_{{.ID}}">
+                        <label for="group_{{.ID}}" style="margin-bottom: 0;">{{.Name}}</label>
+                    </div>
+                    {{end}}
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Add User</button>
+        </form>
+    </div>
+
+    <h2>Existing Users</h2>
+    {{if .Users}}
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Username</th>
+                <th>Groups</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .Users}}
+            <tr>
+                <td>{{.ID}}</td>
+                <td>{{.Username}}</td>
+                <td>
+                    {{range .GroupIDs}}
+                    <span class="badge">{{index $.GroupNames .}}</span>
+                    {{end}}
+                </td>
+                <td>
+                    <div class="actions">
+                        <button onclick="editUser({{.ID}}, '{{.Username}}', [{{range $i, $v := .GroupIDs}}{{if $i}},{{end}}{{$v}}{{end}}])" class="btn btn-edit">Edit</button>
+                        <button onclick="changePassword({{.ID}}, '{{.Username}}')" class="btn btn-edit">Change Password</button>
+                        {{if ne .Username $.Username}}
+                        <form method="POST" action="/admin/users/delete" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete user {{.Username}}?');">
+                            <input type="hidden" name="id" value="{{.ID}}">
+                            <button type="submit" class="btn btn-danger">Delete</button>
+                        </form>
+                        {{end}}
+                    </div>
+                </td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+    {{else}}
+    <p>No users found.</p>
+    {{end}}
+
+    <!-- Edit User Modal -->
+    <div id="editModal" class="form-section" style="display: none;">
+        <h2>Edit User</h2>
+        <form method="POST" action="/admin/users/edit">
+            <input type="hidden" name="id" id="edit_id">
+            <div class="form-group">
+                <label>Username:</label>
+                <input type="text" name="username" id="edit_username" required>
+            </div>
+            <div class="form-group">
+                <label>Groups:</label>
+                <div class="checkbox-group" id="edit_groups">
+                    {{range .Groups}}
+                    <div class="checkbox-item">
+                        <input type="checkbox" name="group_ids" value="{{.ID}}" id="edit_group_{{.ID}}">
+                        <label for="edit_group_{{.ID}}" style="margin-bottom: 0;">{{.Name}}</label>
+                    </div>
+                    {{end}}
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Update User</button>
+            <button type="button" class="btn btn-danger" onclick="cancelEdit()">Cancel</button>
+        </form>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div id="passwordModal" class="form-section" style="display: none;">
+        <h2>Change Password for <span id="password_username"></span></h2>
+        <form method="POST" action="/admin/users/password">
+            <input type="hidden" name="id" id="password_id">
+            <div class="form-group">
+                <label>New Password:</label>
+                <input type="password" name="password" id="new_password" required minlength="4">
+            </div>
+            <button type="submit" class="btn btn-primary">Update Password</button>
+            <button type="button" class="btn btn-danger" onclick="cancelPassword()">Cancel</button>
+        </form>
+    </div>
+
+    <script>
+        function editUser(id, username, groupIds) {
+            document.getElementById('edit_id').value = id;
+            document.getElementById('edit_username').value = username;
+            
+            // Uncheck all checkboxes
+            document.querySelectorAll('#edit_groups input[type="checkbox"]').forEach(cb => {
+                cb.checked = false;
+            });
+            
+            // Check the user's groups
+            groupIds.forEach(gid => {
+                const checkbox = document.getElementById('edit_group_' + gid);
+                if (checkbox) checkbox.checked = true;
+            });
+            
+            document.getElementById('editModal').style.display = 'block';
+            document.getElementById('passwordModal').style.display = 'none';
+            document.getElementById('editModal').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function changePassword(id, username) {
+            document.getElementById('password_id').value = id;
+            document.getElementById('password_username').textContent = username;
+            document.getElementById('new_password').value = '';
+            
+            document.getElementById('passwordModal').style.display = 'block';
+            document.getElementById('editModal').style.display = 'none';
+            document.getElementById('passwordModal').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function cancelEdit() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+
+        function cancelPassword() {
+            document.getElementById('passwordModal').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

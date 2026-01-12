@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin - Manage Groups</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        .nav {
+            margin-bottom: 20px;
+        }
+        .nav a {
+            margin-right: 15px;
+            color: #008CBA;
+            text-decoration: none;
+            padding: 8px 16px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+        }
+        .nav a:hover {
+            background-color: #e0e0e0;
+        }
+        .nav a.active {
+            background-color: #008CBA;
+            color: white;
+        }
+        .btn {
+            padding: 8px 16px;
+            text-decoration: none;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn-primary {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #45a049;
+        }
+        .btn-danger {
+            background-color: #f44336;
+            color: white;
+        }
+        .btn-danger:hover {
+            background-color: #da190b;
+        }
+        .btn-edit {
+            background-color: #008CBA;
+            color: white;
+        }
+        .btn-edit:hover {
+            background-color: #007399;
+        }
+        .logout-btn {
+            background-color: #f44336;
+            color: white;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        .form-section {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .actions {
+            display: flex;
+            gap: 10px;
+        }
+        .message {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .message.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            margin: 2px;
+            background-color: #e0e0e0;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .info-text {
+            color: #666;
+            font-size: 14px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Admin - Manage Groups</h1>
+        <div>
+            <span>Welcome, {{.Username}}!</span>
+            <a href="/logout" class="btn logout-btn">Logout</a>
+        </div>
+    </div>
+
+    <div class="nav">
+        <a href="/files">← Back to Files</a>
+        <a href="/admin/files">Manage Files</a>
+        <a href="/admin/users">Manage Users</a>
+        <a href="/admin/groups" class="active">Manage Groups</a>
+    </div>
+
+    {{if .Message}}
+    <div class="message {{if .Success}}success{{else}}error{{end}}">
+        {{.Message}}
+    </div>
+    {{end}}
+
+    <div class="form-section">
+        <h2>Add New Group</h2>
+        <form method="POST" action="/admin/groups/add">
+            <div class="form-group">
+                <label>Group Name:</label>
+                <input type="text" name="name" required placeholder="e.g., developers, managers">
+            </div>
+            <button type="submit" class="btn btn-primary">Add Group</button>
+        </form>
+    </div>
+
+    <h2>Existing Groups</h2>
+    {{if .Groups}}
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Group Name</th>
+                <th>Members</th>
+                <th>Files</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .Groups}}
+            <tr>
+                <td>{{.ID}}</td>
+                <td>{{.Name}}</td>
+                <td>{{index $.MemberCounts .ID}} user(s)</td>
+                <td>{{index $.FileCounts .ID}} file(s)</td>
+                <td>
+                    <div class="actions">
+                        <button onclick="editGroup({{.ID}}, '{{.Name}}')" class="btn btn-edit">Edit</button>
+                        {{if or (eq (index $.MemberCounts .ID) 0) (and (gt (index $.MemberCounts .ID) 0) (eq (index $.FileCounts .ID) 0))}}
+                        <form method="POST" action="/admin/groups/delete" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete group {{.Name}}?{{if gt (index $.MemberCounts .ID) 0}} This will remove {{index $.MemberCounts .ID}} user(s) from this group.{{end}}');">
+                            <input type="hidden" name="id" value="{{.ID}}">
+                            <button type="submit" class="btn btn-danger">Delete</button>
+                        </form>
+                        {{else}}
+                        <button class="btn btn-danger" disabled title="Cannot delete group with files assigned">Delete</button>
+                        {{end}}
+                    </div>
+                </td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+    <p class="info-text">Note: Groups with files assigned cannot be deleted. Remove or reassign files first.</p>
+    {{else}}
+    <p>No groups found.</p>
+    {{end}}
+
+    <!-- Edit Group Modal -->
+    <div id="editModal" class="form-section" style="display: none;">
+        <h2>Edit Group</h2>
+        <form method="POST" action="/admin/groups/edit">
+            <input type="hidden" name="id" id="edit_id">
+            <div class="form-group">
+                <label>Group Name:</label>
+                <input type="text" name="name" id="edit_name" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Update Group</button>
+            <button type="button" class="btn btn-danger" onclick="cancelEdit()">Cancel</button>
+        </form>
+    </div>
+
+    <script>
+        function editGroup(id, name) {
+            document.getElementById('edit_id').value = id;
+            document.getElementById('edit_name').value = name;
+            document.getElementById('editModal').style.display = 'block';
+            document.getElementById('editModal').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function cancelEdit() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

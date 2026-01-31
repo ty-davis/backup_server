@@ -37,9 +37,22 @@
             padding: 8px 16px;
             text-decoration: none;
             border-radius: 4px;
+            display: inline-block;
         }
         .download-btn:hover {
             background-color: #007399;
+        }
+        .view-map-btn {
+            background-color: #9C27B0;
+            color: white;
+            padding: 8px 16px;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-left: 8px;
+            display: inline-block;
+        }
+        .view-map-btn:hover {
+            background-color: #7B1FA2;
         }
         .logout-btn {
             background-color: #f44336;
@@ -55,6 +68,9 @@
             text-align: center;
             padding: 40px;
             color: #666;
+        }
+        .file-icon {
+            margin-right: 5px;
         }
     </style>
 </head>
@@ -76,15 +92,25 @@
             <tr>
                 <th>File Name</th>
                 <th>Description</th>
-                <th>Action</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
             {{range .Files}}
             <tr>
-                <td>{{.Name}}</td>
+                <td>
+                    {{if hasSuffix .Name ".wld"}}
+                    <span class="file-icon">🗺️</span>
+                    {{end}}
+                    {{.Name}}
+                </td>
                 <td>{{.Description}}</td>
-                <td><a href="/download?id={{.ID}}" class="download-btn">Download</a></td>
+                <td>
+                    <a href="/download?id={{.ID}}" class="download-btn">Download</a>
+                    {{if hasSuffix .Name ".wld"}}
+                    <a href="/viewer/terramap?id={{.ID}}" class="view-map-btn" target="_blank">View Map</a>
+                    {{end}}
+                </td>
             </tr>
             {{end}}
         </tbody>

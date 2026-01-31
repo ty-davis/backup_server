@@ -10,6 +10,7 @@ A simple web application for sharing files across users and groups, built in Go.
 - Session management
 - SQLite database
 - Admin panel for managing files and users
+- **Integrated TerraMap viewer for Terraria world files (.wld)**
 
 ## Setup
 
@@ -70,3 +71,14 @@ Users in the "admins" group can access the admin panel at `/admin/files`, `/admi
 - Session-based authentication with HttpOnly cookies
 - Path validation prevents directory traversal
 - Group-based authorization for file access
+
+## TerraMap Integration
+
+Terraria world files (`.wld`) automatically get a **"View Map"** button that opens an interactive map viewer. The viewer:
+- Loads world files directly from the server (no manual upload needed)
+- Respects group-based permissions
+- Allows panning, zooming, and searching for blocks, ores, items, NPCs, etc.
+- Opens in a new tab with full TerraMap functionality
+
+Simply add a `.wld` file to your backup server, and users with access can view the map with one click!
+

@@ -21,7 +21,12 @@ type Handler struct {
 }
 
 func NewHandler(db *database.DB, sessions *auth.SessionStore) *Handler {
-	tmpl := template.Must(template.ParseGlob("templates/*.html"))
+	funcMap := template.FuncMap{
+		"hasSuffix": func(s, suffix string) bool {
+			return len(s) >= len(suffix) && s[len(s)-len(suffix):] == suffix
+		},
+	}
+	tmpl := template.Must(template.New("").Funcs(funcMap).ParseGlob("templates/*.html"))
 	return &Handler{
 		DB:       db,
 		Sessions: sessions,
@@ -131,6 +136,90 @@ func (h *Handler) DownloadFile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Length", strconv.FormatInt(stat.Size(), 10))
 
 	io.Copy(w, f)
+}
+
+// ServeWorldFile serves .wld files for TerraMap with proper authentication
+func (h *Handler) ServeWorldFile(w http.ResponseWriter, r *http.Request) {
+	session := r.Context().Value("session").(*auth.Session)
+
+	fileIDStr := r.URL.Query().Get("id")
+	fileID, err := strconv.Atoi(fileIDStr)
+	if err != nil {
+		http.Error(w, "Invalid file ID", http.StatusBadRequest)
+		return
+	}
+
+	file, err := h.DB.GetFileByID(fileID)
+	if err != nil {
+		http.Error(w, "File not found", http.StatusNotFound)
+		return
+	}
+
+	// Check user has access to this file's group
+	hasAccess, err := h.DB.UserHasAccessToGroup(session.UserID, file.GroupID)
+	if err != nil || !hasAccess {
+		http.Error(w, "Access denied", http.StatusForbidden)
+		return
+	}
+
+	// Open and serve the file
+	f, err := os.Open(file.FilePath)
+	if err != nil {
+		log.Printf("Failed to open world file %s: %v", file.FilePath, err)
+		http.Error(w, "File not accessible", http.StatusInternalServerError)
+		return
+	}
+	defer f.Close()
+
+	stat, err := f.Stat()
+	if err != nil {
+		http.Error(w, "Failed to read file info", http.StatusInternalServerError)
+		return
+	}
+
+	// Set headers for binary file download
+	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Header().Set("Content-Length", strconv.FormatInt(stat.Size(), 10))
+	w.Header().Set("Cache-Control", "no-cache")
+
+	io.Copy(w, f)
+}
+
+// TerraMapViewer serves the TerraMap viewer page for .wld files
+func (h *Handler) TerraMapViewer(w http.ResponseWriter, r *http.Request) {
+	session := r.Context().Value("session").(*auth.Session)
+
+	fileIDStr := r.URL.Query().Get("id")
+	fileID, err := strconv.Atoi(fileIDStr)
+	if err != nil {
+		http.Error(w, "Invalid file ID", http.StatusBadRequest)
+		return
+	}
+
+	file, err := h.DB.GetFileByID(fileID)
+	if err != nil {
+		http.Error(w, "File not found", http.StatusNotFound)
+		return
+	}
+
+	// Check user has access to this file's group
+	hasAccess, err := h.DB.UserHasAccessToGroup(session.UserID, file.GroupID)
+	if err != nil || !hasAccess {
+		http.Error(w, "Access denied", http.StatusForbidden)
+		return
+	}
+
+	// Render the TerraMap viewer
+	data := map[string]interface{}{
+		"FileID":   fileID,
+		"FileName": file.Name,
+	}
+
+	err = h.Templates.ExecuteTemplate(w, "terramap.html", data)
+	if err != nil {
+		log.Printf("Template error: %v", err)
+		http.Error(w, "Failed to render viewer", http.StatusInternalServerError)
+	}
 }
 
 func (h *Handler) AdminPage(w http.ResponseWriter, r *http.Request) {

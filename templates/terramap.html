@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="TerraMap - Terraria World Viewer">
+  <meta name="author" content="Jason Coon">
+  <link rel="icon" href="/terramap/favicon.ico">
+  <title>TerraMap - {{.FileName}}</title>
+
+  <!-- Bootstrap core CSS -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css" integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">
+
+  <!-- Custom styles for this template -->
+  <link rel="stylesheet" href="/terramap/resources/css/styles.css">
+  
+  <style>
+    #loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+    }
+    #loading-content {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      text-align: center;
+      min-width: 300px;
+    }
+    .spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #3498db;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .back-link {
+      margin-left: 15px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="loading-overlay">
+    <div id="loading-content">
+      <div class="spinner"></div>
+      <h4>Loading Terraria World...</h4>
+      <p><strong>{{.FileName}}</strong></p>
+      <p id="loading-status">Downloading world file...</p>
+    </div>
+  </div>
+
+  <nav id="main-navbar" class="navbar navbar-inverse navbar-fixed-top">
+    <div class="container-fluid">
+      <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar-top" aria-expanded="false">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="#"><img alt="TerraMap" src="/terramap/resources/images/TerraMap16.png" /></a>
+        <a class="navbar-brand" href="#">{{.FileName}}</a>
+      </div>
+
+      <div class="collapse navbar-collapse" id="navbar-top">
+        <button title="Choose Blocks" class="btn btn-default navbar-btn" data-toggle="modal" data-target="#chooseBlocksModal">Blocks...</button>
+        <button title="Find Previous" onclick="previousBlock()" class="btn btn-default navbar-btn"><span class="glyphicon glyphicon-chevron-left"></span></button>
+        <button title="Find Next" onclick="nextBlock()" class="btn btn-default navbar-btn"><span class="glyphicon glyphicon-chevron-right"></span></button>
+        <button title="Highlight All" onclick="highlightAll()" class="btn btn-default navbar-btn"><span class="glyphicon glyphicon-screenshot"></span></button>
+        <button title="Clear Highlight" onclick="clearHighlight()" class="btn btn-default navbar-btn"><span class="glyphicon glyphicon-remove"></span></button>
+        <button title="Zoom To Fit" onclick="resetPanZoom()" class="btn btn-default navbar-btn"><span class="glyphicon glyphicon-fullscreen"></span></button>
+        <button title="Save Map Image" onclick="saveMapImage()" class="btn btn-default navbar-btn"><span class="glyphicon glyphicon-save"></span></button>
+        <button title="Reload World" onclick="reloadWorld()" class="btn btn-default navbar-btn"><span class="glyphicon glyphicon-refresh"></span></button>
+        <a href="/files" class="btn btn-default navbar-btn back-link">
+          <span class="glyphicon glyphicon-arrow-left"></span> Back to Files
+        </a>
+        <ul class="nav navbar-nav">
+          <li class="dropdown">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Sets <span class="caret"></span></a>
+            <ul id="setList" class="dropdown-menu">
+            </ul>
+          </li>
+          <li class="dropdown">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">NPCs <span class="caret"></span></a>
+            <ul id="npcList" class="dropdown-menu" role="menu">
+            </ul>
+          </li>
+          <li class="dropdown">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">World Properties <span class="caret"></span></a>
+            <ul id="worldPropertyList" class="dropdown-menu scrollable-menu" role="menu">
+            </ul>
+          </li>
+          <li class="dropdown">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false"><span id="tile">Tile Info</span> <span class="caret"></span></a>
+            <ul id="tileInfoList" class="dropdown-menu scrollable-menu" role="menu">
+            </ul>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div class="modal fade" id="chooseBlocksModal" tabindex="-1" role="dialog" aria-labelledby="chooseBlocksLabel">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+          <h4 class="modal-title" id="chooseBlocksLabel">Choose Blocks</h4>
+          <input id="blocksFilter" type="text" />
+        </div>
+        <div class="modal-body">
+          <select id="blocks" class="form-control" multiple="multiple" size="10"></select>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">OK</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="help" class="jumbotron">
+    <div class="container">
+      <h1>Loading...</h1>
+    </div>
+  </div>
+
+  <div class="container-fluid">
+    <div id="canvasContainer">
+      <div id="panzoomContainer">
+        <canvas id="canvas" style="position: absolute; left: 0; top: 0;"></canvas>
+        <canvas id="overlayCanvas" style="position: absolute; left: 0; top: 0;"></canvas>
+        <canvas id="selectionCanvas" style="position: absolute; left: 0; top: 0;">Your browser does not support the HTML5 canvas tag.</canvas>
+      </div>
+    </div>
+  </div>
+
+  <nav class="navbar navbar-inverse navbar-fixed-bottom">
+    <div class="container-fluid">
+      <div class="collapse navbar-collapse">
+        <p id="status" class="navbar-text navbar-right"></p>
+      </div>
+    </div>
+  </nav>
+
+  <script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha384-nvAa0+6Qg9clwYCGGPpDQLVpLNn0fRaROjHqs13t4Ggj3Ez50XnGQqc/r8MhnRDZ" crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js" integrity="sha384-aJ21OjlMXNL5UyIl/XNwTMqvzeRMZH2w8c5cRVpzpU8Y5bApTppSuUkhZXN0VxHd" crossorigin="anonymous"></script>
+  <script src="/terramap/resources/js/jquery.mousewheel.js"></script>
+  <script src="/terramap/resources/js/jquery.panzoom.js"></script>
+  <script src="/terramap/resources/js/jquery.hotkeys.js"></script>
+  <script src="/terramap/resources/js/canvas-toBlob.js"></script>
+  <script src="/terramap/resources/js/FileSaver.js"></script>
+  <script src="/terramap/resources/js/settings.js"></script>
+  <script src="/terramap/resources/js/names.js"></script>
+  <script src="/terramap/resources/js/sets.js"></script>
+  <script src="/terramap/resources/js/tileKeys.js"></script>
+  <script src="/terramap/resources/js/itemKeys.js"></script>
+  <script src="/terramap/resources/js/wallKeys.js"></script>
+  <script src="/terramap/resources/js/MapHelper.js"></script>
+  <script src="/terramap/resources/js/main.js"></script>
+
+  <script>
+    (function() {
+      // Override reloadWorld to use correct Worker path
+      var originalReloadWorld = window.reloadWorld;
+      
+      window.reloadWorld = function() {
+        var worker = new Worker('/terramap/resources/js/WorldLoader.js');
+        worker.addEventListener('message', onWorldLoaderWorkerMessage);
+        worker.postMessage(file);
+      };
+
+      // Auto-load world file from server
+      var worldFileUrl = '/worldfile?id={{.FileID}}';
+      var fileName = '{{.FileName}}';
+      
+      // Wait for main.js to initialize
+      function initializeViewer() {
+        if (typeof onWorldLoaderWorkerMessage !== 'function') {
+          setTimeout(initializeViewer, 100);
+          return;
+        }
+
+        $('#loading-status').text('Downloading world file...');
+        
+        fetch(worldFileUrl, {
+          credentials: 'same-origin'
+        })
+        .then(function(response) {
+          if (!response.ok) {
+            throw new Error('Failed to download world file: ' + response.statusText);
+          }
+          $('#loading-status').text('Preparing world data...');
+          return response.blob();
+        })
+        .then(function(blob) {
+          // Create File object that TerraMap expects
+          window.file = new File([blob], fileName, { 
+            type: 'application/octet-stream',
+            lastModified: Date.now()
+          });
+          
+          $('#loading-status').text('Loading world...');
+          
+          // Hide help section
+          $('#help').hide();
+          
+          // Start loading the world using our overridden function
+          setTimeout(function() {
+            reloadWorld();
+            // Hide loading overlay after a moment
+            setTimeout(function() {
+              $('#loading-overlay').fadeOut();
+            }, 1000);
+          }, 100);
+        })
+        .catch(function(error) {
+          console.error('Error loading world:', error);
+          $('#loading-content').html(
+            '<div style="color: red;">' +
+            '<h4>Error Loading World</h4>' +
+            '<p>' + error.message + '</p>' +
+            '<a href="/files" class="btn btn-primary">Back to Files</a>' +
+            '</div>'
+          );
+        });
+      }
+
+      // Start initialization when DOM is ready
+      $(document).ready(function() {
+        initializeViewer();
+      });
+    })();
+  </script>
+</body>
+</html>

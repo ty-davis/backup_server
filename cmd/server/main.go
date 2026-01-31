@@ -29,10 +29,15 @@ func main() {
 	r.Post("/login", handler.Login)
 	r.Get("/logout", handler.Logout)
 
+	fileServer := http.FileServer(http.Dir("static/terramap"))
+	r.Handle("/terramap/*", http.StripPrefix("/terramap", fileServer))
+
 	r.Group(func(r chi.Router) {
 		r.Use(handler.AuthMiddleware)
 		r.Get("/files", handler.FilesPage)
 		r.Get("/download", handler.DownloadFile)
+		r.Get("/worldfile", handler.ServeWorldFile)
+		r.Get("/viewer/terramap", handler.TerraMapViewer)
 		r.Get("/admin/files", handler.AdminPage)
 		r.Post("/admin/files/add", handler.AdminAddFile)
 		r.Post("/admin/files/edit", handler.AdminEditFile)

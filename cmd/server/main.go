@@ -48,6 +48,6 @@ func main() {
 		r.Post("/admin/groups/delete", handler.AdminDeleteGroup)
 	})
 
-	log.Println("Server starting on http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", r))
+	log.Println("Server starting on http://localhost:8090")
+	log.Fatal(http.ListenAndServe(":8090", r))
 }
